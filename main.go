@@ -1,86 +1,53 @@
-// Copyright 2017, OpenCensus Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-// Command prometheus is an example program that collects data for
-// video size. Collected data is exported to Prometheus.
 package main
 
 import (
-	"context"
-	"go.opencensus.io/tag"
 	"log"
-	"math/rand"
 	"net/http"
 	"time"
 
+	"github.com/liornabat/opencensus-poc/stats"
 	"go.opencensus.io/exporter/prometheus"
-	"go.opencensus.io/stats"
 	"go.opencensus.io/stats/view"
 )
 
-// Create measures. The program will record measures for the size of
-// processed videos and the number of videos marked as spam.
-var (
-	videoCount = stats.Int64("example.com/measures/video_count", "number of processed videos", stats.UnitDimensionless)
-	videoSize  = stats.Int64("example.com/measures/video_size", "size of processed video", stats.UnitBytes)
-)
-
 func main() {
-	ctx := context.Background()
+	go http.ListenAndServe("localhost:8080", nil)
 
+	// Create that Stackdriver stats exporter
 	exporter, err := prometheus.NewExporter(prometheus.Options{})
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to create the Stackdriver stats exporter: %v", err)
 	}
-	view.RegisterExporter(exporter)
-	key,_:=tag.NewKey("value")
-
-	// Create view to see the number of processed videos cumulatively.
-	// Create view to see the amount of video processed
-	// Subscribe will allow view data to be exported.
-	// Once no longer needed, you can unsubscribe from the view.
-	if err = view.Register(
-		&view.View{
-			Name:        "video_count",
-			Description: "number of videos processed over time",
-			Measure:     videoCount,
-			TagKeys:     []tag.Key {key},
-			Aggregation: view.Count(),
-		},
-		&view.View{
-			Name:        "video_size",
-			Description: "processed video size over time",
-			Measure:     videoSize,
-			Aggregation: view.Distribution(0, 1<<16, 1<<32),
-		},
-	); err != nil {
-		log.Fatalf("Cannot register the view: %v", err)
-	}
-
-	// Set reporting period to report data at every second.
-	view.SetReportingPeriod(1 * time.Second)
-
-	// Record some data points...
-	go func() {
-		for {
-			stats.Record(ctx, videoCount.M(1), videoSize.M(rand.Int63()))
-			<-time.After(time.Millisecond * time.Duration(1+rand.Intn(400)))
-		}
-	}()
-
-	addr := ":9999"
-	log.Printf("Serving at %s", addr)
 	http.Handle("/metrics", exporter)
-	log.Fatal(http.ListenAndServe(addr, nil))
+
+	// Register the stats exporter
+	view.RegisterExporter(exporter)
+
+	// Register the views
+	view.SetReportingPeriod(1 * time.Second)
+	err = stats.Init("some_node_name")
+	if err != nil {
+		log.Fatalf("Failed to init stats: %v", err)
+	}
+	key := stats.MakeKey("client_id", "channel_1", "group_1", "subscribe", "messages")
+	key2 := stats.MakeKey("client_id", "channel_2", "group_1", "subscribe", "messages")
+	keySet := stats.NewSet("some_set").Add(key, key2)
+
+	for {
+		select {
+		case <-time.After(1 * time.Second):
+			err := keySet.Record(&stats.Item{
+				MsgCount:   1,
+				MsgSize:    1,
+				CacheHit:   1,
+				CacheMiss:  1,
+				Errors:     1,
+				Latency:    1,
+				LastUpdate: time.Now().Unix(),
+			})
+			if err != nil {
+				log.Fatalf("Failed to record to view: %v", err)
+			}
+		}
+	}
 }
