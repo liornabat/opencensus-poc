@@ -23,8 +23,9 @@ func main() {
 	// Register the stats exporter
 	view.RegisterExporter(exporter)
 
+	view.RegisterExporter(&stats.PrintExporter{})
 	// Register the views
-	view.SetReportingPeriod(1 * time.Second)
+	view.SetReportingPeriod(10 * time.Second)
 	err = stats.Init("some_node_name")
 	if err != nil {
 		log.Fatalf("Failed to init stats: %v", err)
@@ -38,13 +39,14 @@ func main() {
 		case <-time.After(1 * time.Second):
 			err := keySet.Record(&stats.Item{
 				MsgCount:   1,
-				MsgSize:    1,
-				CacheHit:   1,
-				CacheMiss:  1,
-				Errors:     1,
-				Latency:    1,
-				LastUpdate: time.Now().Unix(),
+				MsgSize:    0,
+				CacheHit:   0,
+				CacheMiss:  0,
+				Errors:     0,
+				Latency:    0,
+				LastUpdate: 0,
 			})
+
 			if err != nil {
 				log.Fatalf("Failed to record to view: %v", err)
 			}

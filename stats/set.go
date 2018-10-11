@@ -34,13 +34,9 @@ func (s *Set) Remove(keys ...Key) *Set {
 
 }
 
-func (s *Set) Record(item *Item) error {
-	var keys []Key
+func (s *Set) Record(items ...*Item) error {
 	for key, _ := range s.m {
-		keys = append(keys, key)
-	}
-	if len(keys) > 0 {
-		if err := Record(item, keys...); err != nil {
+		if err := key.Record(items...); err != nil {
 			return err
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	ocstats "go.opencensus.io/stats"
 	"go.opencensus.io/tag"
 )
 
@@ -70,4 +71,37 @@ func (k Key) context(ctx context.Context) (context.Context, error) {
 	}
 
 	return tag.New(ctx, mut...)
+}
+
+func (k Key) Record(items ...*Item) error {
+	var ms []ocstats.Measurement
+	for i := 0; i < len(items); i++ {
+		if items[i].MsgCount > 0 {
+			ms = append(ms, typeIntMeasures[typeMsgCount].M(items[i].MsgCount))
+		}
+		if items[i].MsgSize > 0 {
+			ms = append(ms, typeFloatMeasures[typeMsgSize].M(items[i].MsgSize))
+		}
+		if items[i].Errors > 0 {
+			ms = append(ms, typeIntMeasures[typeErrors].M(items[i].Errors))
+		}
+		if items[i].CacheHit > 0 {
+			ms = append(ms, typeIntMeasures[typeCacheHits].M(items[i].CacheHit))
+		}
+		if items[i].CacheMiss > 0 {
+			ms = append(ms, typeIntMeasures[typeCacheMiss].M(items[i].CacheMiss))
+		}
+		if items[i].Latency > 0 {
+			ms = append(ms, typeFloatMeasures[typeLatency].M(float64(items[i].Latency)/1e6))
+		}
+		if items[i].LastUpdate > 0 {
+			ms = append(ms, typeIntMeasures[typeLastUpdate].M(items[i].LastUpdate))
+		}
+	}
+	ctx, err := k.context(context.Background())
+	if err != nil {
+		return err
+	}
+	ocstats.Record(ctx, ms...)
+	return nil
 }
