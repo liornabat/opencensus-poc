@@ -96,33 +96,7 @@ func (k Key) context(ctx context.Context) (context.Context, error) {
 }
 
 func (k Key) Record(items ...Item) error {
-	var ms []ocstats.Measurement
-	for i := 0; i < len(items); i++ {
-		if items[i].MsgCount > 0 {
-			ms = append(ms, typeFloatMeasures[typeMsgCount].M(items[i].MsgCount))
-		}
-
-		if items[i].MsgSize > 0 {
-			ms = append(ms, typeFloatMeasures[typeMsgSize].M(items[i].MsgSize))
-		}
-		for j := 0; j < int(items[i].Errors); j++ {
-			ms = append(ms, typeIntMeasures[typeErrors].M(1))
-		}
-
-		for j := 0; j < int(items[i].CacheHit); j++ {
-			ms = append(ms, typeIntMeasures[typeCacheHits].M(1))
-		}
-		for j := 0; j < int(items[i].CacheMiss); j++ {
-			ms = append(ms, typeIntMeasures[typeCacheMiss].M(1))
-		}
-
-		if items[i].Latency > 0 {
-			ms = append(ms, typeFloatMeasures[typeLatency].M(float64(items[i].Latency)/1e6))
-		}
-		if items[i].LastUpdate > 0 {
-			ms = append(ms, typeIntMeasures[typeLastUpdate].M(items[i].LastUpdate))
-		}
-	}
+	ms := getMeasurements(items...)
 	ctx, err := k.context(context.Background())
 	if err != nil {
 		return err
