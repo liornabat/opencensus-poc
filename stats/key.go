@@ -39,6 +39,7 @@ func (k Key) getElement(n int) string {
 	}
 	return fields[n]
 }
+
 func (k Key) String() string {
 	return string(k)
 }
@@ -64,30 +65,28 @@ func (k Key) SubKind() string {
 
 func (k Key) context(ctx context.Context) (context.Context, error) {
 	var mut []tag.Mutator
-	node := k.Node()
+	fields := strings.Split(string(k), separator)
+	node := fields[0]
+	clientID := fields[1]
+	channel := fields[2]
+	group := fields[3]
+	kind := fields[4]
+	subKind := fields[5]
 	if node != "" {
 		mut = append(mut, tag.Insert(KeyNode, node))
 	}
-	clientID := k.ClientID()
 	if clientID != "" {
 		mut = append(mut, tag.Insert(KeyClientID, clientID))
 	}
-	channel := k.Channel()
 	if channel != "" {
 		mut = append(mut, tag.Insert(KeyChannel, channel))
 	}
-
-	group := k.Group()
 	if group != "" {
 		mut = append(mut, tag.Insert(KeyGroup, group))
 	}
-
-	kind := k.Kind()
 	if kind != "" {
 		mut = append(mut, tag.Insert(KeyKind, kind))
 	}
-
-	subKind := k.SubKind()
 	if subKind != "" {
 		mut = append(mut, tag.Insert(KeySubKind, subKind))
 	}

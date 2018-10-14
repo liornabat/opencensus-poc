@@ -1,6 +1,7 @@
 package stats
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -411,10 +412,25 @@ func Benchmark_Key_Insert(b *testing.B) {
 	Init(WithExportInterval(10000*time.Millisecond), WithInternalExporter())
 
 	for _, bm := range benchmarks {
-		b.Run(bm.name, func(b *testing.B) {
+		b.Run("check_context"+bm.name, func(b *testing.B) {
+			key := GetKey("some_node", "clinet_id", "some_channel", "some_group", "some_kind", "sub_kind")
+
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				key := GetKey("some_node", fmt.Sprintf("clinet_id_%d", i), "some_channel", "some_group", "some_kind", "sub_kind")
+				key.context(context.Background())
+			}
+		})
+		b.Run("get_key"+bm.name, func(b *testing.B) {
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				GetKey("some_node", "client_id", "some_channel", "some_group", "some_kind", "sub_kind")
+
+			}
+		})
+		b.Run("run_Record"+bm.name, func(b *testing.B) {
+			key := GetKey("some_node", "clinet_id", "some_channel", "some_group", "some_kind", "sub_kind")
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
 				key.Record(bm.item)
 			}
 		})
