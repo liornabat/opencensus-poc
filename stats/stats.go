@@ -1,23 +1,45 @@
 package stats
 
 import (
+	"time"
+
 	ocstats "go.opencensus.io/stats"
 	"go.opencensus.io/stats/view"
 	"go.opencensus.io/tag"
 )
 
-var (
-	node = ""
-)
+type Stats struct {
+	opts             statsOptions
+	internalExporter *exporter
+}
 
-func Init(nodeName string) error {
-	for _, v := range typeViews {
-		if err := view.Register(v); err != nil {
-			return err
+func Init(opts ...StateOption) (*Stats, error) {
+	s := &Stats{}
+	so := statsOptions{
+		exportInterval:         5 * time.Second,
+		enableInternalExporter: false,
+	}
+	if len(opts) > 0 {
+		for _, opt := range opts {
+			opt.apply(&so)
 		}
 	}
-	node = nodeName
-	return nil
+	s.opts = so
+	if s.opts.enableInternalExporter {
+		s.internalExporter = NewExporter()
+		view.RegisterExporter(s.internalExporter)
+	}
+	view.SetReportingPeriod(s.opts.exportInterval)
+	for _, v := range typeViews {
+		if err := view.Register(v); err != nil {
+			return nil, err
+		}
+	}
+	return s, nil
+}
+
+func (s *Stats) GetMetricsMap() map[string]*Metric {
+	return s.internalExporter.aggMap.GetMetricsMap()
 }
 
 type statType int
@@ -59,17 +81,17 @@ var typeIntMeasures = map[statType]*ocstats.Int64Measure{
 	typeCacheHits:  ocstats.Int64("total_cache_hits", "count the number of requests with cache hits", "1"),
 	typeCacheMiss:  ocstats.Int64("total_cache_miss", "count the number of requests with cache miss", "1"),
 	typeErrors:     ocstats.Int64("total_errors", "count the number of errors", "1"),
-	typeLastUpdate: ocstats.Int64("LastUpdate", "unix time of last update", "ns"),
+	typeLastUpdate: ocstats.Int64("LastUpdate", "unix time of current update", "ns"),
 }
 
 var typeFloatMeasures = map[statType]*ocstats.Float64Measure{
-	typeMsgSize: ocstats.Float64("total_message_size", "sum the size of messages", "1"),
+	typeMsgSize: ocstats.Float64("total_message_size", "sum the size of messages", "by"),
 	typeLatency: ocstats.Float64("total_latency", "distribution of requests latency", "ms"),
 }
 
 var (
 	KeyNode, _     = tag.NewKey("node")
-	KeyClientID, _ = tag.NewKey("clientID")
+	KeyClientID, _ = tag.NewKey("client_id")
 	KeyChannel, _  = tag.NewKey("channel")
 	KeyGroup, _    = tag.NewKey("group")
 	KeyKind, _     = tag.NewKey("kind")
@@ -97,7 +119,7 @@ var typeViews = map[statType]*view.View{
 	},
 	typeCacheMiss: &view.View{
 		TagKeys:     Keys,
-		Measure:     typeIntMeasures[typeCacheHits],
+		Measure:     typeIntMeasures[typeCacheMiss],
 		Aggregation: view.Count(),
 	},
 	typeErrors: &view.View{

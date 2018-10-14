@@ -35,6 +35,8 @@ func (s *Set) Remove(keys ...Key) *Set {
 }
 
 func (s *Set) Record(items ...*Item) error {
+	s.RLock()
+	defer s.RUnlock()
 	for key, _ := range s.m {
 		if err := key.Record(items...); err != nil {
 			return err
