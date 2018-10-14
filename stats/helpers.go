@@ -21,7 +21,7 @@ func ReportPublish(node, clientID, channel string, msgCount, msgSize float64) {
 }
 
 func ReportPublishError(node, clientID, channel string) {
-	key := GetKey(node, clientID, channel, "", KKindPublish, "")
+	key := GetKey(node, clientID, channel, "", KindPublish, "")
 	key.Record(Item{
 		Errors:     1,
 		LastUpdate: time.Now().UTC().UnixNano(),

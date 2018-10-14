@@ -3,6 +3,8 @@ package stats
 import (
 	"time"
 
+	"go.opencensus.io/exporter/prometheus"
+
 	ocstats "go.opencensus.io/stats"
 	"go.opencensus.io/stats/view"
 	"go.opencensus.io/tag"
@@ -11,6 +13,7 @@ import (
 type Stats struct {
 	opts             statsOptions
 	internalExporter *exporter
+	promExporter     *prometheus.Exporter
 }
 
 func Init(opts ...StateOption) (*Stats, error) {
@@ -25,6 +28,18 @@ func Init(opts ...StateOption) (*Stats, error) {
 		}
 	}
 	s.opts = so
+	var err error
+	if s.opts.enablePrometheus {
+		s.promExporter, err = prometheus.NewExporter(prometheus.Options{
+			Namespace: s.opts.namespace,
+			OnError:   s.opts.errFunc,
+		})
+		if err != nil {
+			return nil, err
+		}
+		view.RegisterExporter(s.promExporter)
+
+	}
 	if s.opts.enableInternalExporter {
 		s.internalExporter = NewExporter()
 		view.RegisterExporter(s.internalExporter)
@@ -40,6 +55,9 @@ func Init(opts ...StateOption) (*Stats, error) {
 
 func (s *Stats) GetMetricsMap() map[string]*Metric {
 	return s.internalExporter.aggMap.GetMetricsMap()
+}
+func (s *Stats) GetPrometheusHandler() *prometheus.Exporter {
+	return s.promExporter
 }
 
 type statType int
