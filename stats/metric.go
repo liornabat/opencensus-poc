@@ -8,7 +8,7 @@ type Metric struct {
 	Group      string
 	ClientID   string
 	Kind       string
-	MsgCount   int64
+	MsgCount   float64
 	MsgSize    float64
 	CacheHit   int64
 	CacheMiss  int64

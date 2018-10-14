@@ -3,7 +3,7 @@ package stats
 import "time"
 
 type Item struct {
-	MsgCount   int64
+	MsgCount   float64
 	MsgSize    float64
 	CacheHit   int64
 	CacheMiss  int64

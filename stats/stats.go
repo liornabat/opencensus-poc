@@ -77,7 +77,6 @@ var typeNames = map[statType]string{
 }
 
 var typeIntMeasures = map[statType]*ocstats.Int64Measure{
-	typeMsgCount:   ocstats.Int64("total_messages", "count the number of messages", "1"),
 	typeCacheHits:  ocstats.Int64("total_cache_hits", "count the number of requests with cache hits", "1"),
 	typeCacheMiss:  ocstats.Int64("total_cache_miss", "count the number of requests with cache miss", "1"),
 	typeErrors:     ocstats.Int64("total_errors", "count the number of errors", "1"),
@@ -85,8 +84,9 @@ var typeIntMeasures = map[statType]*ocstats.Int64Measure{
 }
 
 var typeFloatMeasures = map[statType]*ocstats.Float64Measure{
-	typeMsgSize: ocstats.Float64("total_message_size", "sum the size of messages", "by"),
-	typeLatency: ocstats.Float64("total_latency", "distribution of requests latency", "ms"),
+	typeMsgSize:  ocstats.Float64("total_message_size", "sum the size of messages", "by"),
+	typeLatency:  ocstats.Float64("total_latency", "distribution of requests latency", "ms"),
+	typeMsgCount: ocstats.Float64("total_messages", "count the number of messages", "1"),
 }
 
 var (
@@ -104,8 +104,8 @@ var (
 var typeViews = map[statType]*view.View{
 	typeMsgCount: &view.View{
 		TagKeys:     Keys,
-		Measure:     typeIntMeasures[typeMsgCount],
-		Aggregation: view.Count(),
+		Measure:     typeFloatMeasures[typeMsgCount],
+		Aggregation: view.Sum(),
 	},
 	typeMsgSize: &view.View{
 		TagKeys:     Keys,

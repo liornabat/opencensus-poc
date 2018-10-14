@@ -1,6 +1,7 @@
 package stats
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 )
@@ -36,7 +37,7 @@ func newAggCount(key Key, st statType) *aggCount {
 func (a *aggCount) insert(values ...interface{}) {
 	if len(values) == 1 {
 		count, ok := values[0].(int64)
-		if ok {
+		if ok && count != a.lastValue {
 			a.lastValue = count
 			a.touched = true
 		}
@@ -76,7 +77,7 @@ func (a *aggSum) isTouched() bool {
 func (a *aggSum) insert(values ...interface{}) {
 	if len(values) == 1 {
 		sum, ok := values[0].(float64)
-		if ok {
+		if ok && sum != a.lastValue {
 			a.lastValue = sum
 			a.touched = true
 		}
@@ -153,14 +154,16 @@ func (a *ageDistribution) isTouched() bool {
 func (a *ageDistribution) insert(values ...interface{}) {
 	if len(values) == 2 {
 		lastCount, ok := values[0].(int64)
-		if ok {
+		if ok && lastCount != a.lastCount {
 			a.lastCount = lastCount
+			a.touched = true
 		}
 		lastSum, ok := values[1].(float64)
-		if ok {
+		if ok && lastSum != a.lastSum {
 			a.lastSum = lastSum
+			a.touched = true
 		}
-		a.touched = true
+
 	}
 }
 
@@ -199,7 +202,7 @@ func (a *aggMap) insert(index string, values ...interface{}) {
 		statName := params[1]
 		switch statName {
 		case "total_messages":
-			agg = newAggCount(key, typeMsgCount)
+			agg = newAggSum(key, typeMsgCount)
 		case "total_cache_hits":
 			agg = newAggCount(key, typeCacheHits)
 		case "total_cache_miss":
@@ -224,7 +227,11 @@ func (a *aggMap) GetMetricsMap() map[string]*Metric {
 	metricsMap := make(map[string]*Metric)
 	for _, agg := range a.m {
 		if agg.isTouched() {
+
 			key, st, value := agg.aggregate()
+			if key.ClientID() == "client_1" {
+				fmt.Println("touched ", st)
+			}
 			metric, ok := metricsMap[key.String()]
 			if !ok {
 				metric = NewMetric(key)
@@ -232,7 +239,7 @@ func (a *aggMap) GetMetricsMap() map[string]*Metric {
 			}
 			switch st {
 			case typeMsgCount:
-				metric.MsgCount = value.(int64)
+				metric.MsgCount = value.(float64)
 			case typeMsgSize:
 				metric.MsgSize = value.(float64)
 			case typeCacheHits:

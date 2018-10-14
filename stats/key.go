@@ -39,10 +39,6 @@ func (k Key) getElement(n int) string {
 	}
 	return fields[n]
 }
-func EqualKeys(a, b Key) bool {
-	return string(a) == string(b)
-}
-
 func (k Key) String() string {
 	return string(k)
 }
@@ -99,11 +95,11 @@ func (k Key) context(ctx context.Context) (context.Context, error) {
 	return tag.New(ctx, mut...)
 }
 
-func (k Key) Record(items ...*Item) error {
+func (k Key) Record(items ...Item) error {
 	var ms []ocstats.Measurement
 	for i := 0; i < len(items); i++ {
-		for j := 0; j < int(items[i].MsgCount); j++ {
-			ms = append(ms, typeIntMeasures[typeMsgCount].M(1))
+		if items[i].MsgCount > 0 {
+			ms = append(ms, typeFloatMeasures[typeMsgCount].M(items[i].MsgCount))
 		}
 
 		if items[i].MsgSize > 0 {
@@ -133,4 +129,42 @@ func (k Key) Record(items ...*Item) error {
 	}
 	ocstats.Record(ctx, ms...)
 	return nil
+}
+
+func (k Key) RecordWithContext(ctx context.Context, items ...Item) error {
+	ms := getMeasurements(items...)
+	ocstats.Record(ctx, ms...)
+	return nil
+}
+
+func getMeasurements(items ...Item) (ms []ocstats.Measurement) {
+
+	for i := 0; i < len(items); i++ {
+		if items[i].MsgCount > 0 {
+			ms = append(ms, typeFloatMeasures[typeMsgCount].M(items[i].MsgCount))
+		}
+
+		if items[i].MsgSize > 0 {
+			ms = append(ms, typeFloatMeasures[typeMsgSize].M(items[i].MsgSize))
+		}
+		for j := 0; j < int(items[i].Errors); j++ {
+			ms = append(ms, typeIntMeasures[typeErrors].M(1))
+		}
+
+		for j := 0; j < int(items[i].CacheHit); j++ {
+			ms = append(ms, typeIntMeasures[typeCacheHits].M(1))
+		}
+		for j := 0; j < int(items[i].CacheMiss); j++ {
+			ms = append(ms, typeIntMeasures[typeCacheMiss].M(1))
+		}
+
+		if items[i].Latency > 0 {
+			ms = append(ms, typeFloatMeasures[typeLatency].M(float64(items[i].Latency)/1e6))
+		}
+		if items[i].LastUpdate > 0 {
+			ms = append(ms, typeIntMeasures[typeLastUpdate].M(items[i].LastUpdate))
+		}
+	}
+
+	return
 }
