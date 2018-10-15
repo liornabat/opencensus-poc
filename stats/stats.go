@@ -1,6 +1,8 @@
 package stats
 
 import (
+	"context"
+	"sync"
 	"time"
 
 	"go.opencensus.io/exporter/prometheus"
@@ -156,3 +158,30 @@ var typeViews = map[statType]*view.View{
 		Aggregation: view.LastValue(),
 	},
 }
+
+type contextCache struct {
+	sync.RWMutex
+	m map[Key]context.Context
+}
+
+func newContextCache() *contextCache {
+	return &contextCache{
+		m: map[Key]context.Context{},
+	}
+}
+func (cc *contextCache) get(key Key) (context.Context, error) {
+	cc.Lock()
+	defer cc.Unlock()
+	ctx, ok := cc.m[key]
+	if ok {
+		return ctx, nil
+	}
+	ctx, err := key.context(context.Background())
+	if err != nil {
+		return context.TODO(), err
+	}
+	cc.m[key] = ctx
+	return ctx, nil
+}
+
+var ctxCache = newContextCache()

@@ -96,7 +96,7 @@ func (k Key) context(ctx context.Context) (context.Context, error) {
 
 func (k Key) Record(items ...Item) error {
 	ms := getMeasurements(items...)
-	ctx, err := k.context(context.Background())
+	ctx, err := ctxCache.get(k)
 	if err != nil {
 		return err
 	}

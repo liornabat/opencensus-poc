@@ -47,3 +47,17 @@ func ReportPublishPersistenceError(node, clientID, channel string) {
 		LastUpdate: time.Now().UTC().UnixNano(),
 	})
 }
+
+func ReportMessageSubscribe(keys map[Key]struct{}, msgCount, msgSize float64) {
+	item := Item{
+		MsgCount:   msgCount,
+		MsgSize:    msgSize,
+		LastUpdate: time.Now().UTC().UnixNano(),
+	}
+	go func() {
+		for key, _ := range keys {
+			key.Record(item)
+		}
+	}()
+
+}
