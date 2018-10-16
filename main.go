@@ -38,13 +38,13 @@ func main() {
 	//	select {
 	//	case <-time.After(1 * time.Second):
 	//		err := keySet.Record(&stats.Item{
-	//			MsgCount:   1,
-	//			MsgSize:    0,
-	//			CacheHit:   0,
-	//			CacheMiss:  0,
-	//			Errors:     0,
-	//			Latency:    0,
-	//			LastUpdate: 0,
+	//			TotalMsgCount:   1,
+	//			TotalMsgSize:    0,
+	//			TotalCacheHits:   0,
+	//			TotalCacheMiss:  0,
+	//			TotalErrors:     0,
+	//			AvgLatency:    0,
+	//			LastUpdatedUnix: 0,
 	//		})
 	//
 	//		if err != nil {

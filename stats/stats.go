@@ -55,8 +55,8 @@ func Init(opts ...StateOption) (*Stats, error) {
 	return s, nil
 }
 
-func (s *Stats) GetMetricsMap() map[string]*Metric {
-	return s.internalExporter.aggMap.GetMetricsMap()
+func (s *Stats) GetMetricsMap() (map[string]*ChannelSummary, Summary) {
+	return s.internalExporter.aggMap.GetChannelSummaryMap()
 }
 func (s *Stats) GetPrometheusHandler() *prometheus.Exporter {
 	return s.promExporter
@@ -93,14 +93,14 @@ var typeNames = map[statType]string{
 	typeCacheMiss:  "total_cache_miss",
 	typeErrors:     "total_errors",
 	typeLatency:    "total_latency",
-	typeLastUpdate: "LastUpdate",
+	typeLastUpdate: "LastUpdatedUnix",
 }
 
 var typeIntMeasures = map[statType]*ocstats.Int64Measure{
 	typeCacheHits:  ocstats.Int64("total_cache_hits", "count the number of requests with cache hits", "1"),
 	typeCacheMiss:  ocstats.Int64("total_cache_miss", "count the number of requests with cache miss", "1"),
 	typeErrors:     ocstats.Int64("total_errors", "count the number of errors", "1"),
-	typeLastUpdate: ocstats.Int64("LastUpdate", "unix time of current update", "ns"),
+	typeLastUpdate: ocstats.Int64("LastUpdatedUnix", "unix time of current update", "ns"),
 }
 
 var typeFloatMeasures = map[statType]*ocstats.Float64Measure{

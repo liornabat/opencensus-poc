@@ -59,7 +59,7 @@ var (
 		Measure:     MLatencyMs,
 		Description: "The distribution of the latencies",
 
-		// Latency in buckets:
+		// AvgLatency in buckets:
 		// [>=0ms, >=25ms, >=50ms, >=75ms, >=100ms, >=200ms, >=400ms, >=600ms, >=800ms, >=1s, >=2s, >=4s, >=6s]
 		Aggregation: view.Distribution(0, 25, 50, 75, 100, 200, 400, 600, 800, 1000, 2000, 4000, 6000),
 		TagKeys:     []tag.Key{KeyMethod}}

@@ -1,9 +1,9 @@
 package stats
 
 import (
-	"fmt"
 	"strings"
 	"sync"
+	"time"
 )
 
 type aggregator interface {
@@ -213,7 +213,7 @@ func (a *aggMap) insert(index string, values ...interface{}) {
 			agg = newAggSum(key, typeMsgSize)
 		case "total_latency":
 			agg = newAgeDistribution(key, typeLatency)
-		case "LastUpdate":
+		case "LastUpdatedUnix":
 			agg = newAggLastValue(key, typeLastUpdate)
 		}
 		a.m[index] = agg
@@ -221,40 +221,48 @@ func (a *aggMap) insert(index string, values ...interface{}) {
 	agg.insert(values...)
 }
 
-func (a *aggMap) GetMetricsMap() map[string]*Metric {
+func (a *aggMap) GetChannelSummaryMap() (map[string]*ChannelSummary, Summary) {
 	a.Lock()
 	defer a.Unlock()
-	metricsMap := make(map[string]*Metric)
+	metricsMap := make(map[string]*ChannelSummary)
+	summery := Summary{}
 	for _, agg := range a.m {
 		if agg.isTouched() {
-
 			key, st, value := agg.aggregate()
-			if key.ClientID() == "client_1" {
-				fmt.Println("touched ", st)
-			}
 			metric, ok := metricsMap[key.String()]
 			if !ok {
-				metric = NewMetric(key)
+				metric = NewChannelSummary(key)
 				metricsMap[key.String()] = metric
 			}
 			switch st {
 			case typeMsgCount:
-				metric.MsgCount = value.(float64)
+				metric.TotalMsgCount = value.(float64)
 			case typeMsgSize:
-				metric.MsgSize = value.(float64)
+				metric.TotalMsgSize = value.(float64)
 			case typeCacheHits:
-				metric.CacheHit = value.(int64)
+				metric.TotalCacheHits = value.(int64)
 			case typeCacheMiss:
-				metric.CacheMiss = value.(int64)
+				metric.TotalCacheMiss = value.(int64)
 			case typeErrors:
-				metric.Errors = value.(int64)
+				metric.TotalErrors = value.(int64)
 			case typeLatency:
-				metric.Latency = value.(float64)
+				metric.AvgLatency = value.(float64)
 			case typeLastUpdate:
-				metric.LastUpdate = int64(value.(float64))
+				metric.LastUpdatedUnix = int64(value.(float64))
+				metric.LastUpdateTime = time.Unix(metric.LastUpdatedUnix, 0)
 			}
+			if metric.TotalMsgCount > 0 {
+				metric.AvgMsgSize = metric.TotalMsgSize / metric.TotalMsgCount
+				metric.ErrorRate = float64(metric.TotalErrors) / metric.TotalMsgCount * 100
+			}
+
+			metric.SuccessRate = 100 - metric.ErrorRate
+			if metric.TotalCacheHits+metric.TotalCacheMiss > 0 {
+				metric.CacheHitsRatio = float64(metric.TotalCacheHits) / float64(metric.TotalCacheHits+metric.TotalCacheMiss)
+			}
+			summery = summery.AddSummary(metric)
 		}
 
 	}
-	return metricsMap
+	return metricsMap, summery
 }
